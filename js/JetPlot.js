@@ -20,10 +20,20 @@ class JetPlot {
     constructor(canvas, { debug = true } = {}) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
-        this.strokeColor = 'red';
+        this.strokeColor = 'black';
         this.fillColor = 'black';
 
         this.debug = debug;
+    }
+
+    setDimensions(width, height) {
+        const dpr = window.devicePixelRatio;
+    
+        this.canvas.width = width * dpr;
+        this.canvas.height = height * dpr;
+        this.canvas.style.width = `${width}px`;
+        this.canvas.style.height = `${height}px`;
+        this.ctx.scale(dpr, dpr);
     }
 
     newPath() {
@@ -49,6 +59,35 @@ class JetPlot {
             }
         }
 
+        this._connectPath(path);
+
+        return this;
+    }
+
+    rect(tlx, tly, width, height) {
+        if (!this.currPath) {
+            this.newPath();
+        }
+        
+        const path = [
+            { x: tlx, y: tly },
+            { x: tlx + width, y: tly },
+            { x: tlx + width, y: tly + height },
+            { x: tlx, y: tly + height },
+        ];
+
+        if (this.debug) {
+            path.forEach(p => {
+                dotShape(this.ctx, p.x, p.y);
+            });
+        }
+
+        this._connectPath(path);
+
+        return this;
+    }
+
+    _connectPath(path) {
         const first = path[0];
         const last = path[path.length - 1];
 
@@ -97,26 +136,26 @@ class JetPlot {
         return this;
     }
 
-    dotGrid(path, density = 4) {
+    dotGrid(path, density = 5, optimise = 2) {
         let counterX = 0;
         let counterY = 0;
         const dpr = window.devicePixelRatio;
 
-        for (let y = 0; y < this.canvas.height; y += 2) {
-            for (let x = 0; x < this.canvas.width; x += 2) {
+        for (let y = 0; y < this.canvas.height; y += optimise) {
+            for (let x = 0; x < this.canvas.width; x += optimise) {
                 if (counterX % density === 0 && counterY % density === 0) {
                     if (this.ctx.isPointInPath(path, x, y)) {
                         this.ctx.beginPath();
-                        this.ctx.arc(x / dpr, y / dpr, 1, 0, Math.PI * 2);
+                        this.ctx.arc(x / 2, y /2, 1, 0, Math.PI * 2);
                         this.ctx.fill();
                     }
                 }
 
-                counterX++;
+                counterX += optimise;
             }
 
             counterX = 0;
-            counterY++;
+            counterY += optimise;
         }
     }
 }
