@@ -6,12 +6,13 @@ const WIDTH = 640;
 const HEIGHT = 480;
 
 const plotter = new JetPlot(canvas, { debug: false });
-plotter.setDimensions(640, 480);
+plotter.setDimensions(WIDTH, HEIGHT);
 
-plotter.circle(320, 240, 150).fill(10);
+plotter.circle(320, 240, 10, 100).color('black').fill(10);
+plotter.circle(320, 240, 50, 4).color('green').stroke();
+plotter.circle(320, 240, 80, 6).color('red').stroke();
+plotter.circle(320, 240, 110, 8).color('blue').stroke();
+plotter.circle(320, 240, 140, 10).color('orange').stroke();
+plotter.circle(320, 240, 170, 12).color('purple').stroke();
 
-plotter.circle(100, 100, 50).fill(10);
-plotter.circle(100, 100, 50).stroke();
-
-plotter.rect(120, 300, 50, 100).fill(20);
-plotter.rect(380, 20, 220, 10).stroke();
+plotter.draw();

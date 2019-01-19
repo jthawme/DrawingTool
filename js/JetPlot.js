@@ -1,9 +1,12 @@
+import JetPlotShape, { SHAPE_TYPE } from './JetPlotShape.js';
+
 const dotShape = (ctx, x, y, size = 'big') => {
     ctx.save();
     ctx.beginPath();
     ctx.arc(x, y, size === 'big' ? 5 : 1, 0, Math.PI * 2);
     ctx.strokeStyle = 'black';
     ctx.fillStyle = 'black';
+    ctx.globalAlpha = 0.5;
     if (size === 'big') {
         ctx.stroke();
     } else {
@@ -20,8 +23,8 @@ class JetPlot {
     constructor(canvas, { debug = true } = {}) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
-        this.strokeColor = 'black';
-        this.fillColor = 'black';
+
+        this._shapes = [];
 
         this.debug = debug;
     }
@@ -36,14 +39,24 @@ class JetPlot {
         this.ctx.scale(dpr, dpr);
     }
 
-    newPath() {
-        this.currPath = new Path2D();
+    _checkPrevious() {
+        if (this._shape) {
+            console.warn('There was a previous path that wasn\'t finished');
+        }
+    }
+
+    _protect() {
+        if (!this._shape) {
+            throw new Error('No shape/path set');
+        }
+    }
+
+    _reset() {
+        this._shape = false;
     }
 
     circle(cx, cy, radius, segments = 50) {
-        if (!this.currPath) {
-            this.newPath();
-        }
+        this._checkPrevious();
 
         const angleSegment = (Math.PI * 2) / segments;
         const path = [];
@@ -65,10 +78,8 @@ class JetPlot {
     }
 
     rect(tlx, tly, width, height) {
-        if (!this.currPath) {
-            this.newPath();
-        }
-        
+        this._checkPrevious();
+
         const path = [
             { x: tlx, y: tly },
             { x: tlx + width, y: tly },
@@ -87,67 +98,131 @@ class JetPlot {
         return this;
     }
 
-    _connectPath(path) {
-        const first = path[0];
-        const last = path[path.length - 1];
+    path() {
+        this._shape = new JetPlotShape();
+        return this;
+    }
 
-        this.currPath.moveTo(first.x, first.y);
-        path.forEach(({x: _x, y: _y}, index) => {
-            if (index > 0) {
-                this.currPath.lineTo(_x, _y);
-            }
-        });
-        this.currPath.lineTo(first.x, first.y);
+    moveTo(x, y) {
+        this._protect();
+
+        if (this.debug) {
+            dotShape(this.ctx, x, y);
+        }
+
+        this._shape.addCoords(x, y);
 
         return this;
     }
 
-    stroke() {
-        if (!this.currPath) {
-            console.error('No current path to stroke');
-            return this;
+    lineTo(x, y) {
+        this._protect();
+
+        if (this.debug) {
+            dotShape(this.ctx, x, y);
         }
 
-        this.ctx.save();
-        this.ctx.strokeStyle = this.strokeColor;
-        this.ctx.stroke(this.currPath);
-        this.ctx.restore();
+        this._shape.addCoords(x, y);
 
-        this.currPath = false;
+        return this;
+    }
+
+    translate(x, y) {
+        this._protect();
+
+        this._shape.translate(x, y);
+
+        return this;
+    }
+
+    scale(xFactor, yFactor) {
+        this._protect();
+
+        this._shape.scale(xFactor, yFactor);
+
+        return this;
+    }
+
+    color(color) {
+        this._shape.setColor(color);
+        return this;
+    }
+
+    close() {
+        this._protect();
+
+        const { x, y } = this._shape.getPointAt(0);
+        this._shape.addCoords(x, y);
+
+        return this;
+    }
+
+    _connectPath(path) {
+        this.path();
+        const first = path[0];
+        const last = path[path.length - 1];
+
+        this.moveTo(first.x, first.y);
+        path.forEach(({x: _x, y: _y}, index) => {
+            if (index > 0) {
+                this.lineTo(_x, _y);
+            }
+        });
+        this.lineTo(first.x, first.y);
+
+        return this;
+    }
+
+    save() {
+        return this._shape.saveState();
+    }
+
+    use(shapeObj) {
+        this.path();
+        this._shape.useState(shapeObj);
+        return this;
+    }
+
+    stroke() {
+        this._protect();
+
+        this._pushShape(this._shape);
+        this._reset();
 
         return this;
     }
 
     fill(density = 4) {
-        if (!this.currPath) {
-            console.error('No current path to fill');
-            return this;
-        }
+        this._protect();
 
-        this.ctx.save();
-        this.ctx.strokeStyle = this.fillColor;
+        const shape = this.dotGrid(this._shape.getPath(), density);
 
-        this.dotGrid(this.currPath, density);
-
-        this.ctx.restore();
-
-        this.currPath = false;
+        this._pushShape(shape);
+        this._reset();
 
         return this;
     }
 
-    dotGrid(path, density = 5, optimise = 2) {
+    /**
+     * Pushes the shape to the master
+     * 
+     * @param {Object<JetPlotShape>} shape Shape object
+     */
+    _pushShape(shape) {
+        this._shapes.push(shape);
+    }
+
+    dotGrid(path, density = 5, optimise = 1) {
         let counterX = 0;
         let counterY = 0;
         const dpr = window.devicePixelRatio;
+        const shape = new JetPlotShape(SHAPE_TYPE.DOTS);
 
         for (let y = 0; y < this.canvas.height; y += optimise) {
             for (let x = 0; x < this.canvas.width; x += optimise) {
                 if (counterX % density === 0 && counterY % density === 0) {
                     if (this.ctx.isPointInPath(path, x, y)) {
-                        this.ctx.beginPath();
-                        this.ctx.arc(x / 2, y /2, 1, 0, Math.PI * 2);
-                        this.ctx.fill();
+                        shape.addCoords(x / 2, y / 2);
                     }
                 }
 
@@ -157,6 +232,14 @@ class JetPlot {
             counterX = 0;
             counterY += optimise;
         }
+
+        return shape;
+    }
+
+    draw() {
+        this._shapes.forEach(s => {
+            s.draw(this.ctx);
+        });
     }
 }
 
