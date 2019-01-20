@@ -3,6 +3,12 @@ export const SHAPE_TYPE = {
     DOTS: 'dots'
 };
 
+export const COMMANDS = {
+    MOVE_TO: 'move_to',
+    PEN_DOWN: 'pen_down',
+    PEN_UP: 'pen_up'
+};
+
 const DEFAULT_STROKE = 'red';
 const DEFAULT_FILL = 'black';
 
@@ -132,6 +138,52 @@ class JetPlotShape {
         ctx.strokeStyle = this.color || DEFAULT_STROKE;
         ctx.stroke(this.getPath());
         ctx.restore();
+    }
+
+    getCommand(width, height) {
+        if (this.type === SHAPE_TYPE.DOTS) {
+            return this._getDotsCommand(width, height);
+        }
+
+        if (this.type === SHAPE_TYPE.LINES) {
+            return this._getLinesCommand(width, height);
+        }
+    }
+
+    _makeCommand(command, x = false, y = false) {
+        return { command, x, y };
+    }
+
+    _getDotsCommand(width, height) {
+        return this._pathPoints.map(p => {
+            return [
+                this._makeCommand(COMMANDS.MOVE_TO, this._convert(p.x, width), this._convert(p.y, height)),
+                this._makeCommand(COMMANDS.PEN_DOWN),
+                this._makeCommand(COMMANDS.PEN_UP)
+            ];
+        }).flat();
+    }
+
+    _getLinesCommand(width, height) {
+        const { x: fx, y: fy} = this.getPointAt(0);
+        const command = [
+            this._makeCommand(COMMANDS.MOVE_TO, this._convert(fx, width), this._convert(fy, height)),
+            this._makeCommand(COMMANDS.PEN_DOWN)
+        ];
+
+        this._pathPoints.forEach((p, index) => {
+            if (index > 0) {
+                command.push(this._makeCommand(COMMANDS.MOVE_TO, this._convert(p.x, width), this._convert(p.y, height)));
+            }
+        });
+
+        command.push(this._makeCommand(COMMANDS.PEN_UP));
+
+        return command;
+    }
+
+    _convert(point, size) {
+        return point / size;
     }
 }
 

@@ -31,6 +31,9 @@ class JetPlot {
 
     setDimensions(width, height) {
         const dpr = window.devicePixelRatio;
+
+        this.width = width;
+        this.height = height;
     
         this.canvas.width = width * dpr;
         this.canvas.height = height * dpr;
@@ -338,6 +341,12 @@ class JetPlot {
         this._shapes.forEach(s => {
             s.draw(this.ctx);
         });
+    }
+
+    getCommands() {
+        return this._shapes.map(s => {
+            return s.getCommand(this.width, this.height);
+        }).flat();
     }
 }
 
