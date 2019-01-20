@@ -40,6 +40,10 @@ class JetPlotShape {
         return this._pathPoints[index];
     }
 
+    getLastPoint() {
+        return this._pathPoints.length ? this._pathPoints[this._pathPoints.length - 1] : false;
+    }
+
     addCoords(x, y) {
         this._pathPoints.push({ x, y });
     }
