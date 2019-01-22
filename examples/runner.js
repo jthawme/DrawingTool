@@ -14,10 +14,10 @@ plotter.path()
     .moveTo(100, 100)
     .cubicBezierTo(250, 100, 150, 250, 350, 350, 10)
     .stroke();
-plotter.rect(350, 150, 25, 25).fill(10);
+plotter.rect(350, 150, 25, 25).color('green').fill(10);
 
 const commands = plotter.getCommands();
-const runner = new JetPlotRunner(commands);
+const runner = new JetPlotRunner(commands.commands);
 
 function logger(log) {
     const el = document.createElement('DIV');
@@ -27,10 +27,16 @@ function logger(log) {
     logEl.prepend(el);
 }
 
-runner.debugMode(canvas, WIDTH, HEIGHT, logger).start();
+function onEnd() {
+    logger('Commands completed');
+}
+
+runner.debugMode(canvas, WIDTH, HEIGHT, logger).start(onEnd);
 
 setInterval(() => {
-    runner.next();
+    if (runner.running) {
+        runner.next();
+    }
 }, 150);
 
-logger(`${commands.length} commands`);
+logger(`${commands.commands.length} commands`);

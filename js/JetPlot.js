@@ -344,9 +344,21 @@ class JetPlot {
     }
 
     getCommands() {
-        return this._shapes.map(s => {
+        const all = this._shapes.map(s => {
             return s.getCommand(this.width, this.height);
         }).flat();
+
+        return {
+            commands: all,
+            layers: all.reduce((acc, currCal) => {
+                if (!acc[currCal.color]) {
+                    acc[currCal.color] = [];
+                }
+
+                acc[currCal.color].push(currCal);
+                return acc;
+            }, {})
+        }
     }
 }
 

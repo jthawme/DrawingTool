@@ -151,7 +151,7 @@ class JetPlotShape {
     }
 
     _makeCommand(command, x = false, y = false) {
-        return { command, x, y };
+        return { command, x, y, color: this.color ? this.color : DEFAULT_FILL };
     }
 
     _getDotsCommand(width, height) {

@@ -15,6 +15,7 @@ const DEBUG_MESSAGE = {
 class JetPlotRunner {
     constructor(commands) {
         this.commands = commands;
+        this.running = false;
     }
 
     debugMode(canvas, width, height, logger) {
@@ -29,9 +30,11 @@ class JetPlotRunner {
         return this;
     }
 
-    start() {
+    start(onEnd) {
         this.index = 0;
         this.penDown = false;
+        this.onEnd = onEnd;
+        this.running = true;
     }
 
     next() {
@@ -78,7 +81,8 @@ class JetPlotRunner {
     }
 
     end() {
-        console.log('ya done');
+        this.running = false;
+        this.onEnd();
     }
 }
 
