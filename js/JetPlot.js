@@ -285,7 +285,6 @@ class JetPlot {
 
     stroke() {
         this._protect();
-
         this._pushShape(this._shape);
         this._reset();
 
@@ -294,10 +293,11 @@ class JetPlot {
 
     fill(density = 10) {
         this._protect();
+        
+        this._shape.setType(SHAPE_TYPE.DOTS);
+        this._shape.setInfo({ fillDensity: density });
 
-        const shape = this.dotGrid(this._shape.getPath(), density);
-
-        this._pushShape(shape);
+        this._pushShape(this._shape);
         this._reset();
 
         return this;
@@ -312,35 +312,12 @@ class JetPlot {
         this._shapes.push(shape);
     }
 
-    dotGrid(path, density = 5, optimise = 1) {
-        let counterX = 0;
-        let counterY = 0;
-        const dpr = window.devicePixelRatio;
-        const shape = new JetPlotShape(SHAPE_TYPE.DOTS);
-        shape.setColor(this._shape.color);
-
-        for (let y = 0; y < this.canvas.height; y += optimise) {
-            for (let x = 0; x < this.canvas.width; x += optimise) {
-                if (counterX % density === 0 && counterY % density === 0) {
-                    if (this.ctx.isPointInPath(path, x, y)) {
-                        shape.addCoords(x / 2, y / 2);
-                    }
-                }
-
-                counterX += optimise;
-            }
-
-            counterX = 0;
-            counterY += optimise;
-        }
-
-        return shape;
-    }
-
     draw() {
-        this._shapes.forEach(s => {
-            s.draw(this.ctx);
-        });
+        return Promise.all(
+            this._shapes.map(s => {
+                return s.draw(this.canvas, this.ctx);
+            })
+        );
     }
 
     getCommands() {
