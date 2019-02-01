@@ -20,6 +20,7 @@ class JetPlotShape {
         };
 
         this._pathPoints = [];
+        this._history = [];
 
         this._resolveChain = null;
         this._promise = new Promise((resolve, reject) => {
@@ -60,12 +61,17 @@ class JetPlotShape {
     addCoords(x, y) {
         let _x = x;
         let _y = y;
+
+        this._addHistory('addCoords', [ x, y ]);
+
         this._promise.then(() => {
             this._pathPoints.push({ x:_x, y:_y });
         });
     }
 
     translate(x, y) {
+        this._addHistory('translate', [ x, y ]);
+
         this._promise.then(() => {
             this._pathPoints = this._pathPoints.map(p => {
                 return {
@@ -77,12 +83,14 @@ class JetPlotShape {
     }
 
     scale(xFactor, yFactor) {
-        const { width, height, centre, topLeft, bottomRight } = this._getBounds();
+        this._addHistory('scale', [ xFactor, yFactor ]);
 
-        const widthIncrease = (width * xFactor) - width;
-        const heightIncrease = (height * yFactor) - height;
+        this._promise.then(() => {
+            const { width, height, centre, topLeft, bottomRight } = this._getBounds();
+    
+            const widthIncrease = (width * xFactor) - width;
+            const heightIncrease = (height * yFactor) - height;
 
-        this._promise(() => {
             this._pathPoints = this._pathPoints.map(p => {
                 return {
                     x: (((p.x - topLeft.x) * xFactor) + topLeft.x) - (widthIncrease / 2),
@@ -92,17 +100,19 @@ class JetPlotShape {
         });
     }
 
-    useState({ type, path, color }) {
-        this.type = type;
-        this._pathPoints = path.slice();
-        this.setColor(color);
+    useState({ type, history, info }) {
+        this.setType(type);
+        this.setInfo(info);
+        this._buildFromHistory(history);
+
+        return this;
     }
 
     saveState() {
         return {
             type: this.type,
-            path: this._pathPoints.slice(),
-            color: this.info.color
+            history: this._history,
+            info: Object.assign({}, this.info)
         };
     }
 
@@ -134,7 +144,6 @@ class JetPlotShape {
 
     generate() {
         this._promise.then(() => {
-            console.log(this._pathPoints);
             return this._pathPoints;
         });
         this._resolveChain();
@@ -264,6 +273,19 @@ class JetPlotShape {
 
     _convert(point, size) {
         return point / size;
+    }
+
+    _addHistory(command, data) {
+        this._history.push({
+            command,
+            data
+        });
+    }
+
+    _buildFromHistory(history) {
+        history.forEach(h => {
+            this[h.command].apply(this, h.data);
+        });
     }
 }
 
