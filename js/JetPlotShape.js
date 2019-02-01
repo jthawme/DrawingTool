@@ -28,9 +28,11 @@ class JetPlotShape {
         });
     }
 
-    _getBounds() {
-        const x = this._pathPoints.map(p => p.x).sort();
-        const y = this._pathPoints.map(p => p.y).sort();
+    _getBounds(_pathPoints = false) {
+        const points = _pathPoints ? _pathPoints : this._pathPoints;
+
+        const x = points.map(p => p.x).sort();
+        const y = points.map(p => p.y).sort();
 
         const topLeft = {x: x[0], y: y[0]};
         const bottomRight = {x: x[x.length - 1], y: y[y.length - 1]};
