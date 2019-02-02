@@ -12,6 +12,6 @@ plotter.setDimensions(WIDTH, HEIGHT);
 const rectangle = plotter.rect((WIDTH / 2) - SIZE, (HEIGHT / 2) - SIZE, SIZE, SIZE).save();
 
 plotter.use(rectangle).color('cyan').stroke();
-plotter.use(rectangle).translate(SIZE, SIZE).color('magenta').stroke();
+plotter.use(rectangle).translate(SIZE, SIZE).color('magenta').fill();
 
 plotter.draw();

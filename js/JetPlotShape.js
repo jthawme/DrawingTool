@@ -1,3 +1,5 @@
+import JetPlotSVG from './JetPlotSVG.js';
+
 export const SHAPE_TYPE = {
     LINES: 'lines',
     DOTS: 'dots'
@@ -26,6 +28,8 @@ class JetPlotShape {
         this._promise = new Promise((resolve, reject) => {
             this._resolveChain = resolve;
         });
+
+        this.svgCom = new JetPlotSVG();
     }
 
     _getBounds(_pathPoints = false) {
@@ -99,6 +103,14 @@ class JetPlotShape {
                     y: (((p.y - topLeft.y) * yFactor) + topLeft.y) - (heightIncrease / 2),
                 };
             });
+        });
+    }
+
+    loadSvg(filePath) {
+        this._addHistory('loadSvg', [ filePath ]);
+
+        this._promise.then(() => {
+            return this.svgCom.parse(filePath);
         });
     }
 
@@ -180,11 +192,13 @@ class JetPlotShape {
         return new Promise((resolve, reject) => {
             const { fillDensity } = this.info;
 
-            let counterX = 0;
-            let counterY = 0;
             const dpr = window.devicePixelRatio;
+            const { topLeft, bottomRight} = this._getBounds(pathPoints);
             const path = this._getPath(pathPoints);
             const shape = [];
+
+            let counterX = 0;
+            let counterY = 0;
     
             for (let y = 0; y < canvas.height; y += optimise) {
                 for (let x = 0; x < canvas.width; x += optimise) {

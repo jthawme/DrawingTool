@@ -258,6 +258,13 @@ class JetPlot {
         return this;
     }
 
+    loadSvg(filePath) {
+        this.path();
+        this._shape.loadSvg(filePath)
+
+        return this;
+    }
+
     _connectPath(path) {
         this.path();
         const first = path[0];
