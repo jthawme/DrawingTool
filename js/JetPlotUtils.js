@@ -88,3 +88,22 @@ export const getPointonQuadraticBezier = (t, p0, p1, p2) => {
         y: invT * invT * p0.y + 2 * invT * t * p1.y + t * t * p2.y
     };
 };
+
+export const dotShape = (ctx, x, y, size = 'big') => {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, size === 'big' ? 5 : 1, 0, Math.PI * 2);
+    ctx.strokeStyle = 'black';
+    ctx.fillStyle = 'black';
+    ctx.globalAlpha = 0.5;
+    if (size === 'big') {
+        ctx.stroke();
+    } else {
+        ctx.fill();
+    }
+    ctx.restore();
+
+    if (size === 'big') {
+        dotShape(ctx, x, y, 'small');
+    }
+}

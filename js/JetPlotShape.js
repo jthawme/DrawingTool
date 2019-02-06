@@ -64,13 +64,13 @@ class JetPlotShape {
         return this._pathPoints.length ? this._pathPoints[this._pathPoints.length - 1] : false;
     }
 
-    addCoords(x, y) {
+    addCoords(x, y, returnPromise = false) {
         let _x = x;
         let _y = y;
 
-        this._addHistory('addCoords', [ x, y ]);
+        this._addHistory('addCoords', [ x, y, returnPromise ]);
 
-        this._promise.then(() => {
+        this._promise = this._promise.then(() => {
             this._pathPoints.push({ x:_x, y:_y });
         });
     }
@@ -78,7 +78,7 @@ class JetPlotShape {
     translate(x, y) {
         this._addHistory('translate', [ x, y ]);
 
-        this._promise.then(() => {
+        this._promise = this._promise.then(() => {
             this._pathPoints = this._pathPoints.map(p => {
                 return {
                     x: p.x + x,
@@ -91,7 +91,7 @@ class JetPlotShape {
     scale(xFactor, yFactor) {
         this._addHistory('scale', [ xFactor, yFactor ]);
 
-        this._promise.then(() => {
+        this._promise = this._promise.then(() => {
             const { width, height, centre, topLeft, bottomRight } = this._getBounds();
     
             const widthIncrease = (width * xFactor) - width;
@@ -109,8 +109,12 @@ class JetPlotShape {
     loadSvg(filePath) {
         this._addHistory('loadSvg', [ filePath ]);
 
-        this._promise.then(() => {
-            return this.svgCom.parse(filePath);
+        this._promise = this._promise.then(() => {
+            return this.svgCom.parse(filePath)
+                .then(shapes => {
+                    this._bootload(shapes.flat());
+                    return true;
+                });
         });
     }
 
@@ -128,6 +132,12 @@ class JetPlotShape {
             history: this._history,
             info: Object.assign({}, this.info)
         };
+    }
+
+    _bootload(pathPoints) {
+        pathPoints.map((p, index) => {
+            this._pathPoints.push(p);
+        });
     }
 
     _getPath(pathPoints = false) {
@@ -157,35 +167,26 @@ class JetPlotShape {
     }
 
     generate() {
-        this._promise.then(() => {
-            return this._pathPoints;
-        });
+        this._promise = this._promise.then(() => this._pathPoints);
         this._resolveChain();
     }
 
     draw(canvas, ctx) {
-        const p = this._promise.then(() => {
+        this._promise = this._promise.then(() => {
             if (this.type === SHAPE_TYPE.DOTS) {
                 return this._getDots(this._pathPoints, canvas, ctx)
                     .then(dotPoints => this._drawDots(dotPoints, ctx))
-                    .then(() => {
-                        return this._pathPoints;
-                    });
-            }
-
-            if (this.type === SHAPE_TYPE.LINES) {
+                    .then(() => this._pathPoints);
+            } else if (this.type === SHAPE_TYPE.LINES) {
                 return this._drawLines(this._pathPoints, ctx)
-                    .then(() => {
-                        return this._pathPoints;
-                    })
+                    .then(() => this._pathPoints);
+            } else {
+                return false;
             }
-
-            return false;
         });
 
         this.generate();
-
-        return p;
+        return this._promise;
     }
 
     _getDots(pathPoints, canvas, ctx, optimise = 1) {
@@ -237,6 +238,7 @@ class JetPlotShape {
 
     _drawLines(points, ctx) {
         return new Promise((resolve, reject) => {
+            window.testPaths = points;
             ctx.save();
             ctx.strokeStyle = this.info.color || DEFAULT_STROKE;
             ctx.stroke(this._getPath(points));

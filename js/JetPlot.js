@@ -1,24 +1,5 @@
 import JetPlotShape, { SHAPE_TYPE } from './JetPlotShape.js';
-import { getArc, getCubicBezier, getQuadraticBezier, getRect} from './JetPlotUtils.js';
-
-const dotShape = (ctx, x, y, size = 'big') => {
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(x, y, size === 'big' ? 5 : 1, 0, Math.PI * 2);
-    ctx.strokeStyle = 'black';
-    ctx.fillStyle = 'black';
-    ctx.globalAlpha = 0.5;
-    if (size === 'big') {
-        ctx.stroke();
-    } else {
-        ctx.fill();
-    }
-    ctx.restore();
-
-    if (size === 'big') {
-        dotShape(ctx, x, y, 'small');
-    }
-}
+import { getArc, getCubicBezier, getQuadraticBezier, getRect, dotShape } from './JetPlotUtils.js';
 
 class JetPlot {
     constructor(canvas, { debug = true } = {}) {
